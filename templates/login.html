@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk — Docket</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="auth-screen">
+    <div class="auth-stub">
+      <div>
+        <div class="brand"><span class="brand-mark">D</span>Docket</div>
+        <p class="tagline">Satu tempat untuk mencatat, melacak, dan menyelesaikan setiap permintaan bantuan.</p>
+      </div>
+      <div class="auth-note"><span class="auth-note-icon">✓</span> Semua kebutuhan bantuan, tertata dalam satu tempat.</div>
+    </div>
+    <div class="auth-form-panel">
+      <div class="auth-form">
+        <span class="eyebrow">SELAMAT DATANG KEMBALI</span>
+        <h1>Masuk ke Docket</h1>
+        <p class="sub">Lanjutkan mengelola permintaan bantuanmu.</p>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="flash">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" autocomplete="email" required autofocus placeholder="nama@perusahaan.com">
+          </div>
+          <div class="field">
+            <label for="password">Kata sandi</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="Masukkan kata sandi">
+          </div>
+          <button type="submit" class="btn">Masuk <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="switch">Belum punya akun? <a href="{{ url_for('register') }}">Daftar di sini</a></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

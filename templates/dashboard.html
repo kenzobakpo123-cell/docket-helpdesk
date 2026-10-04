@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Dasbor — Docket{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div>
+      <span class="eyebrow">RUANG KERJA</span>
+      <h1>{% if current_user.role == 'admin' %}Semua tiket{% else %}Halo, {{ current_user.name.split()[0] }}{% endif %}</h1>
+      <p class="page-subtitle">{% if current_user.role == 'admin' %}Pantau dan kelola semua permintaan bantuan.{% else %}Pantau perkembangan permintaan bantuanmu di sini.{% endif %}</p>
+    </div>
+    <a href="{{ url_for('new_ticket') }}" class="new-ticket-btn"><span aria-hidden="true">＋</span> Buat tiket baru</a>
+  </div>
+
+  <section class="stats-grid" aria-label="Ringkasan tiket">
+    <article class="stat-card">
+      <span class="stat-label">Total tiket</span>
+      <strong class="stat-value">{{ tickets|length }}</strong>
+      <span class="stat-caption">Semua permintaan</span>
+    </article>
+    <article class="stat-card stat-open">
+      <span class="stat-label">Terbuka</span>
+      <strong class="stat-value">{{ tickets|selectattr('status', 'equalto', 'open')|list|length }}</strong>
+      <span class="stat-caption">Menunggu ditangani</span>
+    </article>
+    <article class="stat-card stat-progress">
+      <span class="stat-label">Sedang diproses</span>
+      <strong class="stat-value">{{ tickets|selectattr('status', 'equalto', 'in_progress')|list|length }}</strong>
+      <span class="stat-caption">Dalam penanganan</span>
+    </article>
+    <article class="stat-card stat-done">
+      <span class="stat-label">Selesai</span>
+      <strong class="stat-value">{{ tickets|selectattr('status', 'in', ['resolved', 'closed'])|list|length }}</strong>
+      <span class="stat-caption">Terselesaikan</span>
+    </article>
+  </section>
+
+  {% if tickets %}
+  <div class="queue">
+    <div class="queue-head">
+      <div class="col-number">No.</div>
+      <div>Permintaan</div>
+      <div>Status</div>
+      <div class="col-assignee">Penanggung jawab</div>
+      <div class="col-date">Tanggal dibuat</div>
+    </div>
+    {% for t in tickets %}
+    <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}" class="queue-row priority-{{ t.priority }}">
+      <div class="ticket-no col-number">#{{ '%04d'|format(t.id) }}</div>
+      <div class="ticket-title">
+        {{ t.title }}
+        <span class="meta"><span class="category-tag">{{ t.category }}</span> · dibuat oleh {{ t.creator.name }}</span>
+      </div>
+      <div><span class="badge badge-{{ t.status }}">{{ {'open': 'Terbuka', 'in_progress': 'Diproses', 'resolved': 'Selesai', 'closed': 'Ditutup'}[t.status] }}</span></div>
+      <div class="col-assignee">{{ t.assignee.name if t.assignee else 'Belum ada' }}</div>
+      <div class="col-date">{{ t.created_at.strftime('%d %b %Y') }}</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon" aria-hidden="true">✦</div>
+    <h2>Belum ada tiket</h2>
+    <p>Buat permintaan pertama dan kami akan membantu menanganinya.</p>
+    <a href="{{ url_for('new_ticket') }}" class="new-ticket-btn">Buat tiket pertama</a>
+  </div>
+  {% endif %}
+{% endblock %}

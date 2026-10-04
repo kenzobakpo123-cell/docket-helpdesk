@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Tiket baru — Docket{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div>
+      <span class="eyebrow">PERMINTAAN BANTUAN</span>
+      <h1>Buat tiket baru</h1>
+      <p class="page-subtitle">Ceritakan kebutuhanmu. Tim kami akan segera membantu.</p>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="text-link">← Kembali</a>
+  </div>
+
+  <form method="POST" class="ticket-form">
+    <div class="form-section">
+    <div class="field">
+      <label for="title">Judul</label>
+      <input type="text" id="title" name="title" required autofocus placeholder="Ringkas, jelaskan masalahnya dalam satu kalimat">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="category">Kategori</label>
+        <select id="category" name="category" required>
+          <option value="Hardware">Hardware</option>
+          <option value="Software">Software</option>
+          <option value="Jaringan">Jaringan</option>
+          <option value="Akun & Akses">Akun & akses</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="priority">Prioritas</label>
+        <select id="priority" name="priority" required>
+          <option value="low">Rendah</option>
+          <option value="medium" selected>Sedang</option>
+          <option value="high">Tinggi</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="description">Deskripsi</label>
+      <textarea id="description" name="description" rows="6" required placeholder="Jelaskan apa yang terjadi, kapan mulai muncul, dan langkah yang sudah dicoba"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <span class="form-hint">Pastikan informasi yang diberikan sudah benar.</span>
+      <button type="submit" class="btn">Kirim tiket <span aria-hidden="true">→</span></button>
+    </div>
+    </div>
+  </form>
+{% endblock %}

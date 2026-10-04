@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar — Docket</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="auth-screen">
+    <div class="auth-stub">
+      <div>
+        <div class="brand"><span class="brand-mark">D</span>Docket</div>
+        <p class="tagline">Satu tempat untuk mencatat, melacak, dan menyelesaikan setiap permintaan bantuan.</p>
+      </div>
+      <div class="auth-note"><span class="auth-note-icon">✓</span> Mulai sekarang, semua bantuan lebih mudah dilacak.</div>
+    </div>
+    <div class="auth-form-panel">
+      <div class="auth-form">
+        <span class="eyebrow">MULAI SEKARANG</span>
+        <h1>Buat akun Docket</h1>
+        <p class="sub">Daftar dan sampaikan kebutuhan bantuanmu.</p>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="flash">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+          <div class="field">
+            <label for="name">Nama</label>
+            <input type="text" id="name" name="name" autocomplete="name" required autofocus placeholder="Nama lengkap">
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" autocomplete="email" required placeholder="nama@perusahaan.com">
+          </div>
+          <div class="field">
+            <label for="password">Kata sandi</label>
+            <input type="password" id="password" name="password" autocomplete="new-password" required placeholder="Buat kata sandi">
+          </div>
+          <button type="submit" class="btn">Daftar</button>
+        </form>
+        <p class="switch">Sudah punya akun? <a href="{{ url_for('login') }}">Masuk di sini</a></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

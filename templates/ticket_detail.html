@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Tiket #{{ '%04d'|format(ticket.id) }} — Docket{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div><a href="{{ url_for('dashboard') }}" class="text-link">&larr; Kembali ke dasbor</a></div>
+  </div>
+
+  <div class="ticket-detail-head priority-{{ ticket.priority }}">
+    <div class="detail-title-row">
+      <div>
+        <span class="ticket-no mono">TIKET #{{ '%04d'|format(ticket.id) }}</span>
+        <h1>{{ ticket.title }}</h1>
+      </div>
+      <span class="badge badge-{{ ticket.status }}">{{ {'open': 'Terbuka', 'in_progress': 'Diproses', 'resolved': 'Selesai', 'closed': 'Ditutup'}[ticket.status] }}</span>
+    </div>
+    <p class="desc">{{ ticket.description }}</p>
+    <div class="meta-row">
+      <span class="detail-meta-item"><span>Kategori</span><strong>{{ ticket.category }}</strong></span>
+      <span class="detail-meta-item"><span>Dibuat oleh</span><strong>{{ ticket.creator.name }}</strong></span>
+      <span class="detail-meta-item"><span>Penanggung jawab</span><strong>{{ ticket.assignee.name if ticket.assignee else 'Belum ada' }}</strong></span>
+      <span class="detail-meta-item"><span>Tanggal dibuat</span><strong>{{ ticket.created_at.strftime('%d %b %Y, %H:%M') }}</strong></span>
+    </div>
+  </div>
+
+  {% if current_user.role == 'admin' %}
+  <div class="admin-panel">
+    <div class="section-heading">
+      <div><span class="eyebrow">AREA ADMIN</span><h3>Kelola tiket</h3></div>
+    </div>
+    <form method="POST">
+      <input type="hidden" name="update_status" value="1">
+      <div class="field-row">
+        <div class="field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>Open</option>
+            <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>In progress</option>
+            <option value="resolved" {% if ticket.status == 'resolved' %}selected{% endif %}>Resolved</option>
+            <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>Closed</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="assigned_to_id">Tangani ke</label>
+          <select id="assigned_to_id" name="assigned_to_id">
+            <option value="">Belum ada</option>
+            {% for staff in staff_list %}
+            <option value="{{ staff.id }}" {% if ticket.assigned_to_id == staff.id %}selected{% endif %}>{{ staff.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn">Simpan perubahan</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="comment-thread">
+    <div class="section-heading">
+      <div><span class="eyebrow">PEMBARUAN</span><h2>Riwayat komunikasi</h2></div>
+      <span class="comment-count">{{ ticket.comments|length }} komentar</span>
+    </div>
+    {% for c in ticket.comments %}
+    <div class="comment">
+      <div class="comment-head">
+        <strong>{{ c.author.name }}</strong>
+        <span>{{ c.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+      </div>
+      <div>{{ c.content }}</div>
+    </div>
+    {% else %}
+    <p class="no-comments">Belum ada komentar. Mulai percakapan dengan menambahkan komentar di bawah.</p>
+    {% endfor %}
+
+    <form method="POST" class="comment-form">
+      <div class="field">
+        <label for="comment_content">Tambah komentar</label>
+        <textarea id="comment_content" name="comment_content" rows="3" required placeholder="Tulis update atau pertanyaan"></textarea>
+      </div>
+      <button type="submit" class="btn">Kirim komentar <span aria-hidden="true">→</span></button>
+    </form>
+  </div>
+{% endblock %}
