@@ -26,6 +26,7 @@ Permintaan bantuan IT yang dikirim lewat chat atau lisan mudah terlewat dan suli
 - Ringkasan antrean dan indikator target waktu penanganan.
 - Riwayat aktivitas untuk super admin: login/logout, pendaftaran, perubahan akses akun, pembuatan laporan, komentar, status, dan penugasan.
 - Filter riwayat aktivitas berdasarkan jenis kejadian dan nama pengguna, dengan paginasi.
+- Notifikasi push per perangkat untuk laporan baru, komentar, perubahan tiket, dan persetujuan akun.
 
 ## Target waktu pada demo
 
@@ -66,10 +67,32 @@ Skrip promosi awal hanya berjalan jika belum ada super admin. Jangan menjalankan
 
 Saat aplikasi mulai, kolom status persetujuan ditambahkan ke database lama bila belum ada. Akun lama dipertahankan aktif; hanya pendaftaran baru yang menunggu persetujuan.
 
+## Notifikasi push
+
+Notifikasi push dikirim setelah pengguna mengaktifkannya melalui tombol **Aktifkan notifikasi** pada perangkat. Aplikasi memberi notifikasi untuk laporan IT baru kepada tim IT, komentar/perubahan tiket kepada pihak terkait, serta persetujuan akun jika akun tersebut sudah memiliki langganan perangkat aktif sebelumnya. Pengguna baru yang masih menunggu persetujuan belum dapat masuk untuk mengaktifkan push. Isi notifikasi sengaja tidak menyertakan judul atau isi laporan.
+
+Untuk mengaktifkan pengiriman:
+
+1. Pasang dependensi terbaru di virtualenv deployment: `pip install -r requirements.txt`.
+2. Buat kunci VAPID di server (jangan di folder repository) dan simpan private key di luar folder publik/repo. Contoh:
+
+   ```bash
+   python -c "import base64; from py_vapid import Vapid; from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat; v=Vapid(); v.generate_keys(); v.save_key('/home/kafa/.docket-vapid.pem'); print(base64.urlsafe_b64encode(v.public_key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)).decode().rstrip('='))"
+   ```
+
+   Jalankan `chmod 600 /home/kafa/.docket-vapid.pem` setelahnya. Simpan nilai yang dicetak sebagai `VAPID_PUBLIC_KEY`. Jangan membagikan private key.
+3. Atur variabel environment server yang tidak di-commit ke Git. Di PythonAnywhere, kamu dapat menaruhnya di `.env` server (jangan commit file ini) atau menetapkannya di file WSGI sebelum aplikasi di-import:
+   - `VAPID_PUBLIC_KEY`: nilai publik yang dicetak pada langkah sebelumnya.
+   - `VAPID_PRIVATE_KEY`: path ke file private key, misalnya `/home/kafa/.docket-vapid.pem`.
+   - `VAPID_CLAIMS_EMAIL`: email kontak pengelola, tanpa awalan `mailto:`.
+4. Reload aplikasi. Setiap pengguna mengaktifkan notifikasi di masing-masing browser/perangkat. Izin browser harus diberikan.
+
+Laptop dan Android memerlukan browser yang mendukung Web Push. Untuk iPhone/iPad, gunakan iOS/iPadOS 16.4 atau lebih baru, tambahkan situs ke Layar Utama, buka dari ikon tersebut, lalu aktifkan notifikasi. Situs harus memakai HTTPS. Jika kunci server belum diatur, tombol aktivasi tidak ditampilkan dan push belum dikirim.
+
 ## Penjelasan singkat untuk portofolio
 
 > “Docket adalah portal helpdesk IT internal untuk perusahaan kecil dan menengah. Aplikasi ini membantu karyawan melaporkan masalah perangkat, aplikasi, jaringan, atau akun; lalu membantu tim IT mengelola penugasan, status, komunikasi, panduan mandiri, dan ringkasan antrean dalam satu tempat.”
 
 ## Batasan demo
 
-Docket bukan marketplace jasa IT dan tidak memproses pembayaran. Target waktu hanya simulasi; aplikasi belum mengatur jam kerja, hari libur, eskalasi otomatis, atau notifikasi email. Persetujuan akun saat ini dilakukan oleh super admin di aplikasi; email belum diverifikasi otomatis. Untuk penggunaan perusahaan sungguhan, batasi pendaftaran ke karyawan yang berwenang dan sesuaikan kebijakan akses, target layanan, serta penyimpanan data dengan perusahaan.
+Docket bukan marketplace jasa IT dan tidak memproses pembayaran. Target waktu hanya simulasi; aplikasi belum mengatur jam kerja, hari libur, eskalasi otomatis, atau notifikasi email. Push memerlukan konfigurasi kunci VAPID dan izin pada setiap perangkat; push bukan pengganti notifikasi email yang dijamin terkirim. Persetujuan akun saat ini dilakukan oleh super admin di aplikasi; email belum diverifikasi otomatis. Untuk penggunaan perusahaan sungguhan, batasi pendaftaran ke karyawan yang berwenang dan sesuaikan kebijakan akses, target layanan, serta penyimpanan data dengan perusahaan.

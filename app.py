@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, make_response, session
+from flask import Flask, render_template, redirect, url_for, request, flash, make_response, session, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,18 +8,24 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from sqlalchemy import case, func, inspect, or_, text
 from sqlalchemy.exc import SQLAlchemyError
+from requests.exceptions import RequestException
 import hmac
 import csv
 import io
+import json
 import os
 import re
 import secrets
+from urllib.parse import urlsplit
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+app.config['VAPID_PUBLIC_KEY'] = os.getenv('VAPID_PUBLIC_KEY', '')
+app.config['VAPID_PRIVATE_KEY'] = os.getenv('VAPID_PRIVATE_KEY', '')
+app.config['VAPID_CLAIMS_EMAIL'] = os.getenv('VAPID_CLAIMS_EMAIL', '')
 
 # ===== KEAMANAN COOKIE SESSION =====
 app.config['SESSION_COOKIE_SECURE'] = True
@@ -156,6 +162,15 @@ class AuditLog(db.Model):
     target_id = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=_utc_now, index=True)
 
+class PushSubscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    endpoint = db.Column(db.String(2048), nullable=False, unique=True)
+    p256dh = db.Column(db.String(256), nullable=False)
+    auth = db.Column(db.String(256), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utc_now)
+    user = db.relationship('User')
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -171,6 +186,51 @@ def record_activity(action, description, target_type=None, target_id=None, actor
         target_type=target_type,
         target_id=target_id,
     ))
+
+def push_is_configured():
+    return all((
+        app.config['VAPID_PUBLIC_KEY'],
+        app.config['VAPID_PRIVATE_KEY'],
+        app.config['VAPID_CLAIMS_EMAIL'],
+    ))
+
+def notify_user(user_id, title, body, path):
+    if not push_is_configured():
+        return
+
+    from pywebpush import WebPushException, webpush
+
+    subscriptions = PushSubscription.query.filter_by(user_id=user_id).all()
+    for subscription in subscriptions:
+        try:
+            webpush(
+                subscription_info={
+                    'endpoint': subscription.endpoint,
+                    'keys': {'p256dh': subscription.p256dh, 'auth': subscription.auth},
+                },
+                data=json.dumps({'title': title, 'body': body, 'path': path}),
+                vapid_private_key=app.config['VAPID_PRIVATE_KEY'],
+                vapid_claims={'sub': f"mailto:{app.config['VAPID_CLAIMS_EMAIL']}"},
+                timeout=10,
+            )
+        except (WebPushException, RequestException, OSError, ValueError) as error:
+            response = (
+                error.response
+                if isinstance(error, (WebPushException, RequestException))
+                else None
+            )
+            status_code = response.status_code if response is not None else None
+            if status_code in {404, 410}:
+                db.session.delete(subscription)
+                app.logger.info('Removed expired push subscription for user %s', user_id)
+            else:
+                app.logger.warning(
+                    'Web push failed for user %s with status %s (%s).',
+                    user_id,
+                    status_code,
+                    type(error).__name__,
+                )
+    db.session.commit()
 
 # ===== SECURITY HEADERS =====
 @app.after_request
@@ -191,10 +251,15 @@ def inject_csrf_token():
         if current_user.is_authenticated and current_user.role == 'super_admin'
         else 0
     )
-    return {'csrf_token': token, 'pending_user_count': pending_user_count}
+    return {
+        'csrf_token': token,
+        'pending_user_count': pending_user_count,
+        'push_public_key': app.config['VAPID_PUBLIC_KEY'],
+        'push_configured': push_is_configured(),
+    }
 
 def valid_csrf_token():
-    submitted = request.form.get('csrf_token', '')
+    submitted = request.form.get('csrf_token') or request.headers.get('X-CSRF-Token', '')
     expected = session.get('_csrf_token', '')
     return bool(submitted and expected and hmac.compare_digest(submitted, expected))
 
@@ -202,6 +267,86 @@ def valid_csrf_token():
 def protect_post_requests():
     if request.method == 'POST' and not valid_csrf_token():
         return 'Permintaan tidak valid. Muat ulang halaman lalu coba lagi.', 400
+
+@app.route('/service-worker.js')
+def service_worker():
+    response = send_from_directory(app.static_folder, 'service-worker.js')
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
+
+@app.route('/push/subscribe', methods=['POST'])
+@login_required
+def push_subscribe():
+    if not push_is_configured():
+        return jsonify(error='Notifikasi push belum dikonfigurasi di server.'), 503
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify(error='Data langganan tidak valid.'), 400
+    endpoint = payload.get('endpoint')
+    keys = payload.get('keys')
+    try:
+        parsed_endpoint = urlsplit(endpoint) if isinstance(endpoint, str) else None
+        hostname = parsed_endpoint.hostname if parsed_endpoint else None
+        valid_port = parsed_endpoint is not None and parsed_endpoint.port in {None, 443}
+    except ValueError:
+        hostname = None
+        valid_port = False
+    push_hosts = (
+        'fcm.googleapis.com',
+        'push.services.mozilla.com',
+        'web.push.apple.com',
+        'notify.windows.com',
+        'wns.windows.com',
+    )
+    if (
+        not isinstance(endpoint, str)
+        or len(endpoint) > 2048
+        or parsed_endpoint is None
+        or parsed_endpoint.scheme != 'https'
+        or not hostname
+        or not any(hostname == host or hostname.endswith(f'.{host}') for host in push_hosts)
+        or not valid_port
+        or parsed_endpoint.username is not None
+        or parsed_endpoint.password is not None
+        or parsed_endpoint.fragment
+        or not isinstance(keys, dict)
+        or not isinstance(keys.get('p256dh'), str)
+        or not isinstance(keys.get('auth'), str)
+        or len(keys['p256dh']) > 256
+        or len(keys['auth']) > 256
+        or not keys['p256dh']
+        or not keys['auth']
+    ):
+        return jsonify(error='Data langganan tidak valid.'), 400
+
+    subscription = PushSubscription.query.filter_by(endpoint=endpoint).first()
+    if subscription is None:
+        subscription = PushSubscription(endpoint=endpoint)
+        db.session.add(subscription)
+    subscription.user_id = current_user.id
+    subscription.p256dh = keys['p256dh']
+    subscription.auth = keys['auth']
+    db.session.commit()
+    return jsonify(message='Notifikasi berhasil diaktifkan pada perangkat ini.'), 201
+
+@app.route('/push/unsubscribe', methods=['POST'])
+@login_required
+def push_unsubscribe():
+    payload = request.get_json(silent=True)
+    endpoint = payload.get('endpoint') if isinstance(payload, dict) else None
+    if not isinstance(endpoint, str) or len(endpoint) > 2048:
+        return jsonify(error='Data langganan tidak valid.'), 400
+
+    subscription = PushSubscription.query.filter_by(
+        endpoint=endpoint,
+        user_id=current_user.id,
+    ).first()
+    if subscription is not None:
+        db.session.delete(subscription)
+        db.session.commit()
+    return jsonify(message='Notifikasi dinonaktifkan pada perangkat ini.')
 
 @app.before_request
 def expire_unapproved_sessions():
@@ -350,6 +495,13 @@ def manage_users():
                 user.id,
             )
         db.session.commit()
+        if approval_status == 'approved' and previous_status != 'approved':
+            notify_user(
+                user.id,
+                'Akun Docket disetujui',
+                'Akunmu sudah aktif. Kamu dapat masuk ke portal.',
+                url_for('login'),
+            )
         flash(f'Akun {user.name} diperbarui.')
         return redirect(url_for('manage_users'))
 
@@ -684,6 +836,20 @@ def new_ticket():
             new_t.id,
         )
         db.session.commit()
+        staff_ids = [
+            staff_id for (staff_id,) in User.query.with_entities(User.id).filter(
+                User.role.in_(['admin', 'super_admin']),
+                User.approval_status == 'approved',
+                User.id != current_user.id,
+            ).all()
+        ]
+        for staff_id in staff_ids:
+            notify_user(
+                staff_id,
+                'Laporan IT baru',
+                'Ada laporan baru yang perlu ditinjau.',
+                url_for('ticket_detail', ticket_id=new_t.id),
+            )
         flash('Tiket berhasil dibuat.')
         return redirect(url_for('dashboard'))
 
@@ -737,6 +903,17 @@ def ticket_detail(ticket_id):
                     ticket.id,
                 )
                 db.session.commit()
+                recipient_ids = {
+                    ticket.user_id,
+                    ticket.assigned_to_id,
+                } - {None, current_user.id}
+                for recipient_id in recipient_ids:
+                    notify_user(
+                        recipient_id,
+                        'Pembaruan laporan IT',
+                        'Ada komentar baru pada laporanmu.',
+                        url_for('ticket_detail', ticket_id=ticket.id),
+                    )
                 flash('Komentar ditambahkan.')
         elif 'update_status' in request.form and current_user.role in {'admin', 'super_admin'}:
             previous_status = ticket.status
@@ -794,6 +971,24 @@ def ticket_detail(ticket_id):
                     ticket.id,
                 )
             db.session.commit()
+            recipients = set()
+            if previous_status != ticket.status and ticket.user_id != current_user.id:
+                recipients.add(ticket.user_id)
+            if previous_assignee_id != ticket.assigned_to_id:
+                if ticket.user_id != current_user.id:
+                    recipients.add(ticket.user_id)
+                if previous_assignee_id is not None:
+                    recipients.add(previous_assignee_id)
+                if ticket.assigned_to_id is not None:
+                    recipients.add(ticket.assigned_to_id)
+            recipients.discard(current_user.id)
+            for recipient_id in recipients:
+                notify_user(
+                    recipient_id,
+                    'Laporan IT diperbarui',
+                    'Status atau penanggung jawab laporanmu telah berubah.',
+                    url_for('ticket_detail', ticket_id=ticket.id),
+                )
             flash('Tiket diperbarui.')
         return redirect(url_for('ticket_detail', ticket_id=ticket.id))
     staff_list = (

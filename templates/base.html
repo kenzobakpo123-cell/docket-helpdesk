@@ -22,6 +22,12 @@
       <span class="user-avatar" aria-hidden="true">{{ current_user.name[0]|upper }}</span>
       <span class="user-name">{{ current_user.name }}</span>
       <span class="role-tag">{{ {'super_admin': 'Super admin', 'admin': 'Tim IT', 'user': 'Karyawan'}.get(current_user.role, 'Karyawan') }}</span>
+      {% if push_configured %}
+      <button class="push-toggle" type="button" id="push-toggle" data-public-key="{{ push_public_key }}" data-csrf-token="{{ csrf_token }}" aria-pressed="false">Aktifkan notifikasi</button>
+      <span id="push-status" class="push-status" role="status" aria-live="polite"></span>
+      {% else %}
+      <span class="push-unavailable" title="VAPID belum dikonfigurasi di server">Push belum disetel</span>
+      {% endif %}
       <form class="logout-form" method="POST" action="{{ url_for('logout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button class="logout-link" type="submit">Keluar</button>
@@ -38,5 +44,8 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
+  {% if push_configured %}
+  <script src="{{ url_for('static', filename='js/push-notifications.js') }}" defer></script>
+  {% endif %}
 </body>
 </html>
