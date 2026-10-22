@@ -7,19 +7,43 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <div class="auth-screen">
+  <div class="auth-screen login-screen">
     <div class="auth-stub">
-      <div>
+      <div class="login-brand">
         <div class="brand"><span class="brand-mark">D</span>Docket</div>
-        <p class="tagline">Satu tempat untuk mencatat, melacak, dan menyelesaikan setiap permintaan bantuan.</p>
+        <span class="login-kicker">HELPDESK IT INTERNAL PERUSAHAAN</span>
+        <h2>Masalah kecil,<br>ditangani dengan jelas.</h2>
+        <p class="tagline">Portal bagi karyawan untuk melaporkan kendala perangkat, aplikasi kerja, jaringan, dan akses akun kepada tim IT.</p>
       </div>
-      <div class="auth-note"><span class="auth-note-icon">✓</span> Semua kebutuhan bantuan, tertata dalam satu tempat.</div>
+      <div class="login-preview" aria-hidden="true">
+        <div class="login-preview-head">
+          <span>CONTOH DAFTAR TIKET</span>
+          <span class="preview-count">02 aktif</span>
+        </div>
+        <div class="preview-ticket">
+          <div class="preview-ticket-top">
+            <span class="preview-ticket-id">#DK-1042</span>
+            <span class="preview-status"><span></span> Diproses</span>
+          </div>
+          <strong>Akses email kantor</strong>
+          <span class="preview-ticket-meta">Akun & akses <span>·</span> Baru saja</span>
+        </div>
+        <div class="preview-ticket preview-ticket-secondary">
+          <div class="preview-ticket-top">
+            <span class="preview-ticket-id">#DK-1041</span>
+            <span class="preview-status preview-status-open"><span></span> Terbuka</span>
+          </div>
+          <strong>Permintaan instalasi aplikasi</strong>
+          <span class="preview-ticket-meta">Perangkat lunak <span>·</span> 18 menit lalu</span>
+        </div>
+      </div>
+      <div class="auth-note"><span class="auth-note-icon">✓</span> Satu jalur untuk pelaporan dan pemantauan bantuan IT.</div>
     </div>
     <div class="auth-form-panel">
       <div class="auth-form">
-        <span class="eyebrow">SELAMAT DATANG KEMBALI</span>
-        <h1>Masuk ke Docket</h1>
-        <p class="sub">Lanjutkan mengelola permintaan bantuanmu.</p>
+        <span class="eyebrow">MASUK KE AKUN</span>
+        <h1>Masuk ke portal IT.</h1>
+        <p class="sub">Karyawan dapat mengirim kendala. Tim IT dapat mengelola dan menindaklanjuti tiket.</p>
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -30,6 +54,7 @@
         {% endwith %}
 
         <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <div class="field">
             <label for="email">Email</label>
             <input type="email" id="email" name="email" autocomplete="email" required autofocus placeholder="nama@perusahaan.com">

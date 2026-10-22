@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Kelola akun — Docket{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div>
+      <span class="eyebrow">KONTROL AKSES</span>
+      <h1>Kelola akun portal</h1>
+      <p class="page-subtitle">Tinjau pendaftaran dan tetapkan siapa yang menjadi karyawan atau anggota tim IT.</p>
+    </div>
+  </div>
+
+  <section class="access-summary" aria-label="Ringkasan pendaftaran">
+    <span class="access-summary-icon" aria-hidden="true">!</span>
+    <div>
+      <strong>{{ pending_count }} pendaftaran menunggu persetujuan</strong>
+      <p>Akun pending atau ditolak tidak dapat masuk. Hanya super admin yang bisa mengubah status dan peran.</p>
+    </div>
+  </section>
+
+  <div class="user-admin-list">
+    {% for user in users %}
+    <article class="user-admin-card {% if user.approval_status == 'pending' %}user-admin-pending{% endif %}">
+      <div class="user-admin-identity">
+        <span class="user-avatar" aria-hidden="true">{{ user.name[0]|upper }}</span>
+        <div>
+          <strong>{{ user.name }}</strong>
+          <span>{{ user.email }}</span>
+        </div>
+      </div>
+      <div class="user-current-access">
+        <span class="access-status access-status-{{ user.approval_status }}">
+          {{ {'pending': 'Menunggu', 'approved': 'Aktif', 'rejected': 'Ditolak'}[user.approval_status] }}
+        </span>
+        <span class="access-role">
+          {{ {'super_admin': 'Super admin', 'admin': 'Tim IT', 'user': 'Karyawan'}.get(user.role, user.role) }}
+        </span>
+      </div>
+      {% if user.id == current_user.id %}
+      <span class="self-admin-note">Akun super admin Anda — perubahan dikunci.</span>
+      {% elif user.role == 'super_admin' %}
+      <span class="self-admin-note">Akun super admin hanya dapat diubah melalui prosedur server.</span>
+      {% else %}
+      <form class="user-access-form" method="POST" action="{{ url_for('manage_users') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="user_id" value="{{ user.id }}">
+        <div class="field">
+          <label for="status-{{ user.id }}">Status akun</label>
+          <select id="status-{{ user.id }}" name="approval_status">
+            <option value="pending" {% if user.approval_status == 'pending' %}selected{% endif %}>Menunggu</option>
+            <option value="approved" {% if user.approval_status == 'approved' %}selected{% endif %}>Setujui dan aktifkan</option>
+            <option value="rejected" {% if user.approval_status == 'rejected' %}selected{% endif %}>Tolak / nonaktifkan</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="role-{{ user.id }}">Peran</label>
+          <select id="role-{{ user.id }}" name="role">
+            <option value="user" {% if user.role == 'user' %}selected{% endif %}>Karyawan</option>
+            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Tim IT</option>
+          </select>
+        </div>
+        <button type="submit" class="filter-submit">Simpan</button>
+      </form>
+      {% endif %}
+    </article>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon" aria-hidden="true">✓</div>
+      <h2>Belum ada akun terdaftar</h2>
+      <p>Akun karyawan yang mendaftar akan muncul di halaman ini untuk ditinjau.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <aside class="role-guide">
+    <h2>Pembagian akses</h2>
+    <div><strong>Karyawan</strong><span>Membuat tiket, membaca panduan IT, dan melihat atau membalas tiket miliknya sendiri.</span></div>
+    <div><strong>Tim IT (admin)</strong><span>Melihat antrean semua tiket, mengubah status, menetapkan penanggung jawab, dan menanggapi laporan.</span></div>
+    <div><strong>Super admin</strong><span>Memiliki akses tim IT sekaligus menyetujui atau menolak akun, mengaktifkan atau menonaktifkan akses, dan menetapkan peran.</span></div>
+  </aside>
+{% endblock %}

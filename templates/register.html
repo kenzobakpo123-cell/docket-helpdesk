@@ -7,19 +7,26 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <div class="auth-screen">
+  <div class="auth-screen auth-register-screen">
     <div class="auth-stub">
-      <div>
+      <div class="register-story">
         <div class="brand"><span class="brand-mark">D</span>Docket</div>
-        <p class="tagline">Satu tempat untuk mencatat, melacak, dan menyelesaikan setiap permintaan bantuan.</p>
+        <span class="register-kicker">PORTAL HELPDESK INTERNAL</span>
+        <h2>Bantuan IT,<br>tanpa pesan yang tercecer.</h2>
+        <p class="tagline">Daftar sebagai karyawan untuk mengirim laporan kendala teknologi dan mengikuti pembaruannya di satu tempat.</p>
       </div>
-      <div class="auth-note"><span class="auth-note-icon">✓</span> Mulai sekarang, semua bantuan lebih mudah dilacak.</div>
+      <div class="register-steps" aria-label="Alur penggunaan portal">
+        <div><span>01</span><strong>Daftar akun</strong></div>
+        <div><span>02</span><strong>Tunggu persetujuan</strong></div>
+        <div><span>03</span><strong>Laporkan kendala IT</strong></div>
+      </div>
+      <div class="auth-note"><span class="auth-note-icon">✓</span> Akun baru ditinjau super admin sebelum bisa digunakan.</div>
     </div>
     <div class="auth-form-panel">
       <div class="auth-form">
-        <span class="eyebrow">MULAI SEKARANG</span>
-        <h1>Buat akun Docket</h1>
-        <p class="sub">Daftar dan sampaikan kebutuhan bantuanmu.</p>
+        <span class="eyebrow">AKSES KARYAWAN</span>
+        <h1>Daftar ke portal IT.</h1>
+        <p class="sub">Isi data akun. Tim pengelola akan meninjau pendaftaran sebelum akses diberikan.</p>
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -30,20 +37,22 @@
         {% endwith %}
 
         <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <div class="field">
             <label for="name">Nama</label>
-            <input type="text" id="name" name="name" autocomplete="name" required autofocus placeholder="Nama lengkap">
+            <input type="text" id="name" name="name" maxlength="100" autocomplete="name" required autofocus placeholder="Nama sesuai identitas kantor">
           </div>
           <div class="field">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" autocomplete="email" required placeholder="nama@perusahaan.com">
+            <input type="email" id="email" name="email" maxlength="150" autocomplete="email" required placeholder="nama@perusahaan.com">
           </div>
           <div class="field">
             <label for="password">Kata sandi</label>
             <input type="password" id="password" name="password" autocomplete="new-password" required placeholder="Buat kata sandi">
           </div>
-          <button type="submit" class="btn">Daftar</button>
+          <button type="submit" class="btn">Kirim pendaftaran <span aria-hidden="true">→</span></button>
         </form>
+        <p class="register-security-note">Pendaftaran tidak langsung memberikan akses. Peran karyawan atau tim IT ditetapkan oleh super admin.</p>
         <p class="switch">Sudah punya akun? <a href="{{ url_for('login') }}">Masuk di sini</a></p>
       </div>
     </div>

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Panduan IT — Docket{% endblock %}
+{% block content %}
+  <div class="page-head help-page-head">
+    <div>
+      <span class="eyebrow">PUSAT BANTUAN MANDIRI</span>
+      <h1>Coba langkah cepat ini dulu</h1>
+      <p class="page-subtitle">Panduan untuk kendala IT kantor yang umum. Jika belum selesai, lanjutkan dengan membuat tiket.</p>
+    </div>
+    <a href="{{ url_for('new_ticket') }}" class="new-ticket-btn">Laporkan kendala <span aria-hidden="true">→</span></a>
+  </div>
+
+  <form class="help-search" method="GET" action="{{ url_for('help_center') }}">
+    <label for="help-query">Cari panduan</label>
+    <div class="search-input-wrap">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input id="help-query" type="search" name="q" maxlength="100" value="{{ search }}" placeholder="Contoh: Wi-Fi, akun, printer, aplikasi">
+      <button type="submit" class="filter-submit">Cari</button>
+    </div>
+  </form>
+
+  <p class="help-result-count" aria-live="polite">{{ articles|length }} panduan ditemukan</p>
+  {% if articles %}
+  <section class="help-grid" aria-label="Panduan bantuan IT">
+    {% for article in articles %}
+    <article class="help-card">
+      <div class="help-card-top">
+        <span class="help-category">{{ article.category }}</span>
+        <span class="help-card-number">{{ '%02d'|format(loop.index) }}</span>
+      </div>
+      <h2>{{ article.title }}</h2>
+      <p class="help-summary">{{ article.summary }}</p>
+      <ol>
+        {% for step in article.steps %}
+        <li>{{ step }}</li>
+        {% endfor %}
+      </ol>
+      <a class="help-ticket-link" href="{{ url_for('new_ticket', category=article.category, title=article.ticket_title) }}">
+        Masih bermasalah? Buat tiket <span aria-hidden="true">→</span>
+      </a>
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <div class="empty-state filter-empty">
+    <div class="empty-icon" aria-hidden="true">⌕</div>
+    <h2>Panduan belum ditemukan</h2>
+    <p>Coba kata kunci lain atau kirim kendala ke tim IT.</p>
+    <a href="{{ url_for('new_ticket') }}" class="new-ticket-btn">Buat tiket bantuan IT</a>
+  </div>
+  {% endif %}
+
+  <aside class="sla-disclaimer">
+    <strong>Catatan target penanganan</strong>
+    <span>Angka target pada aplikasi ini hanya simulasi portofolio berdasarkan jam kalender, bukan SLA resmi perusahaan atau jaminan waktu respons.</span>
+  </aside>
+{% endblock %}

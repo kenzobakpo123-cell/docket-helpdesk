@@ -13,6 +13,11 @@
       </div>
       <span class="badge badge-{{ ticket.status }}">{{ {'open': 'Terbuka', 'in_progress': 'Diproses', 'resolved': 'Selesai', 'closed': 'Ditutup'}[ticket.status] }}</span>
     </div>
+    <div class="sla-callout sla-{{ sla_info.state }}">
+      <span class="sla-indicator" aria-hidden="true"></span>
+      <span><strong>{{ sla_info.label }}</strong> untuk target penanganan simulasi.</span>
+      {% if sla_info.deadline %}<span class="sla-deadline">Target: {{ sla_info.deadline.strftime('%d %b %Y, %H:%M') }} UTC</span>{% endif %}
+    </div>
     <p class="desc">{{ ticket.description }}</p>
     <div class="meta-row">
       <span class="detail-meta-item"><span>Kategori</span><strong>{{ ticket.category }}</strong></span>
@@ -22,12 +27,13 @@
     </div>
   </div>
 
-  {% if current_user.role == 'admin' %}
+  {% if current_user.role in ['admin', 'super_admin'] %}
   <div class="admin-panel">
     <div class="section-heading">
-      <div><span class="eyebrow">AREA ADMIN</span><h3>Kelola tiket</h3></div>
+      <div><span class="eyebrow">TIM IT</span><h3>Kelola laporan</h3></div>
     </div>
     <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="update_status" value="1">
       <div class="field-row">
         <div class="field">
@@ -72,6 +78,7 @@
     {% endfor %}
 
     <form method="POST" class="comment-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <div class="field">
         <label for="comment_content">Tambah komentar</label>
         <textarea id="comment_content" name="comment_content" rows="3" required placeholder="Tulis update atau pertanyaan"></textarea>

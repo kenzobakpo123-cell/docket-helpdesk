@@ -3,9 +3,9 @@
 {% block content %}
   <div class="page-head">
     <div>
-      <span class="eyebrow">RUANG KERJA</span>
-      <h1>{% if current_user.role == 'admin' %}Semua tiket{% else %}Halo, {{ current_user.name.split()[0] }}{% endif %}</h1>
-      <p class="page-subtitle">{% if current_user.role == 'admin' %}Pantau dan kelola semua permintaan bantuan.{% else %}Pantau perkembangan permintaan bantuanmu di sini.{% endif %}</p>
+      <span class="eyebrow">HELPDESK IT INTERNAL</span>
+      <h1>{% if is_it_staff %}Semua laporan IT{% else %}Halo, {{ current_user.name.split()[0] }}{% endif %}</h1>
+      <p class="page-subtitle">{% if is_it_staff %}Kelola laporan perangkat, aplikasi, jaringan, dan akses akun karyawan.{% else %}Laporkan kendala IT kantor dan pantau penanganannya di sini.{% endif %}</p>
     </div>
     <a href="{{ url_for('new_ticket') }}" class="new-ticket-btn"><span aria-hidden="true">＋</span> Buat tiket baru</a>
   </div>
@@ -13,31 +13,108 @@
   <section class="stats-grid" aria-label="Ringkasan tiket">
     <article class="stat-card">
       <span class="stat-label">Total tiket</span>
-      <strong class="stat-value">{{ tickets|length }}</strong>
+      <strong class="stat-value">{{ total_tickets }}</strong>
       <span class="stat-caption">Semua permintaan</span>
     </article>
     <article class="stat-card stat-open">
       <span class="stat-label">Terbuka</span>
-      <strong class="stat-value">{{ tickets|selectattr('status', 'equalto', 'open')|list|length }}</strong>
+      <strong class="stat-value">{{ status_counts.get('open', 0) }}</strong>
       <span class="stat-caption">Menunggu ditangani</span>
     </article>
     <article class="stat-card stat-progress">
       <span class="stat-label">Sedang diproses</span>
-      <strong class="stat-value">{{ tickets|selectattr('status', 'equalto', 'in_progress')|list|length }}</strong>
+      <strong class="stat-value">{{ status_counts.get('in_progress', 0) }}</strong>
       <span class="stat-caption">Dalam penanganan</span>
     </article>
     <article class="stat-card stat-done">
       <span class="stat-label">Selesai</span>
-      <strong class="stat-value">{{ tickets|selectattr('status', 'in', ['resolved', 'closed'])|list|length }}</strong>
+      <strong class="stat-value">{{ status_counts.get('resolved', 0) + status_counts.get('closed', 0) }}</strong>
       <span class="stat-caption">Terselesaikan</span>
     </article>
+    <article class="stat-card stat-overdue">
+      <span class="stat-label">Lewat target demo</span>
+      <strong class="stat-value">{{ overdue_count }}</strong>
+      <span class="stat-caption">Tiket aktif melewati target waktu</span>
+    </article>
   </section>
+
+  {% if total_tickets %}
+  <form class="ticket-filters" method="GET" action="{{ url_for('dashboard') }}">
+    <div class="filter-search">
+      <label for="ticket-search">Cari tiket</label>
+      <div class="search-input-wrap">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input id="ticket-search" type="search" name="q" maxlength="100" value="{{ filters.q }}" placeholder="Judul, deskripsi, kategori, nama, atau nomor tiket">
+      </div>
+    </div>
+    <div class="filter-field">
+      <label for="filter-status">Status</label>
+      <select id="filter-status" name="status">
+        <option value="">Semua status</option>
+        <option value="open" {% if filters.status == 'open' %}selected{% endif %}>Terbuka</option>
+        <option value="in_progress" {% if filters.status == 'in_progress' %}selected{% endif %}>Diproses</option>
+        <option value="resolved" {% if filters.status == 'resolved' %}selected{% endif %}>Selesai</option>
+        <option value="closed" {% if filters.status == 'closed' %}selected{% endif %}>Ditutup</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="filter-category">Kategori</label>
+      <select id="filter-category" name="category">
+        <option value="">Semua kategori</option>
+        {% for item in categories %}
+        <option value="{{ item }}" {% if filters.category == item %}selected{% endif %}>{{ item }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="filter-priority">Prioritas</label>
+      <select id="filter-priority" name="priority">
+        <option value="">Semua prioritas</option>
+        <option value="low" {% if filters.priority == 'low' %}selected{% endif %}>Rendah</option>
+        <option value="medium" {% if filters.priority == 'medium' %}selected{% endif %}>Sedang</option>
+        <option value="high" {% if filters.priority == 'high' %}selected{% endif %}>Tinggi</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="filter-sort">Urutkan</label>
+      <select id="filter-sort" name="sort">
+        <option value="newest" {% if filters.sort == 'newest' %}selected{% endif %}>Terbaru</option>
+        <option value="oldest" {% if filters.sort == 'oldest' %}selected{% endif %}>Terlama</option>
+        <option value="priority" {% if filters.sort == 'priority' %}selected{% endif %}>Prioritas tertinggi</option>
+        <option value="title" {% if filters.sort == 'title' %}selected{% endif %}>Judul A–Z</option>
+      </select>
+    </div>
+    {% if is_it_staff %}
+    <div class="filter-field">
+      <label for="filter-assignee">Penanggung jawab</label>
+      <select id="filter-assignee" name="assignee">
+        <option value="">Semua penanggung jawab</option>
+        <option value="unassigned" {% if filters.assignee == 'unassigned' %}selected{% endif %}>Belum ditangani</option>
+        {% for staff in assignees %}
+        <option value="{{ staff.id }}" {% if filters.assignee == staff.id|string %}selected{% endif %}>{{ staff.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="filter-actions">
+      <button type="submit" class="filter-submit">Terapkan filter</button>
+      <a href="{{ url_for('dashboard') }}" class="filter-reset">Reset</a>
+    </div>
+  </form>
+
+  <div class="results-label" aria-live="polite">
+    Menampilkan <strong>{{ tickets|length }}</strong> tiket di halaman ini ·
+    <strong>{{ filtered_count }}</strong> cocok dari {{ total_tickets }} tiket
+    <a class="export-link" href="{{ url_for('export_tickets', q=filters.q, status=filters.status, category=filters.category, priority=filters.priority, assignee=filters.assignee, sort=filters.sort) }}">
+      Unduh hasil CSV <span aria-hidden="true">↓</span>
+    </a>
+  </div>
 
   {% if tickets %}
   <div class="queue">
     <div class="queue-head">
       <div class="col-number">No.</div>
-      <div>Permintaan</div>
+      <div>Kendala IT</div>
       <div>Status</div>
       <div class="col-assignee">Penanggung jawab</div>
       <div class="col-date">Tanggal dibuat</div>
@@ -47,7 +124,7 @@
       <div class="ticket-no col-number">#{{ '%04d'|format(t.id) }}</div>
       <div class="ticket-title">
         {{ t.title }}
-        <span class="meta"><span class="category-tag">{{ t.category }}</span> · dibuat oleh {{ t.creator.name }}</span>
+        <span class="meta"><span class="category-tag">{{ t.category }}</span> · <span class="priority-label priority-label-{{ t.priority }}">{{ {'low': 'Prioritas rendah', 'medium': 'Prioritas sedang', 'high': 'Prioritas tinggi'}[t.priority] }}</span> · <span class="sla-inline sla-{{ sla_by_ticket[t.id].state }}">{{ sla_by_ticket[t.id].label }}</span> · dibuat oleh {{ t.creator.name }}</span>
       </div>
       <div><span class="badge badge-{{ t.status }}">{{ {'open': 'Terbuka', 'in_progress': 'Diproses', 'resolved': 'Selesai', 'closed': 'Ditutup'}[t.status] }}</span></div>
       <div class="col-assignee">{{ t.assignee.name if t.assignee else 'Belum ada' }}</div>
@@ -55,6 +132,29 @@
     </a>
     {% endfor %}
   </div>
+  {% if page_count > 1 %}
+  <nav class="pagination" aria-label="Navigasi halaman tiket">
+    {% if page > 1 %}
+    <a href="{{ url_for('dashboard', q=filters.q, status=filters.status, category=filters.category, priority=filters.priority, assignee=filters.assignee, sort=filters.sort, page=page - 1) }}" aria-label="Halaman sebelumnya">← Sebelumnya</a>
+    {% else %}
+    <span class="pagination-disabled">← Sebelumnya</span>
+    {% endif %}
+    <span class="pagination-current">Halaman <strong>{{ page }}</strong> dari {{ page_count }}</span>
+    {% if page < page_count %}
+    <a href="{{ url_for('dashboard', q=filters.q, status=filters.status, category=filters.category, priority=filters.priority, assignee=filters.assignee, sort=filters.sort, page=page + 1) }}" aria-label="Halaman berikutnya">Berikutnya →</a>
+    {% else %}
+    <span class="pagination-disabled">Berikutnya →</span>
+    {% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+  <div class="empty-state filter-empty">
+    <div class="empty-icon" aria-hidden="true">⌕</div>
+    <h2>Tiket tidak ditemukan</h2>
+    <p>Coba kata kunci atau filter yang berbeda.</p>
+    <a href="{{ url_for('dashboard') }}" class="new-ticket-btn">Hapus semua filter</a>
+  </div>
+  {% endif %}
   {% else %}
   <div class="empty-state">
     <div class="empty-icon" aria-hidden="true">✦</div>

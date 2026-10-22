@@ -10,14 +10,22 @@
   <header class="topbar">
     <a class="brand" href="{{ url_for('dashboard') }}"><span class="brand-mark">D</span>Docket</a>
     <nav class="main-nav" aria-label="Navigasi utama">
-      <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dasbor</a>
+      <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Tiket IT</a>
       <a href="{{ url_for('new_ticket') }}" class="{% if request.endpoint == 'new_ticket' %}active{% endif %}">Buat tiket</a>
+      <a href="{{ url_for('help_center') }}" class="{% if request.endpoint == 'help_center' %}active{% endif %}">Panduan IT</a>
+      {% if current_user.role == 'super_admin' %}
+      <a href="{{ url_for('manage_users') }}" class="{% if request.endpoint == 'manage_users' %}active{% endif %}">Kelola akun{% if pending_user_count %}<span class="nav-count">{{ pending_user_count }}</span>{% endif %}</a>
+      <a href="{{ url_for('activity_log') }}" class="{% if request.endpoint == 'activity_log' %}active{% endif %}">Aktivitas</a>
+      {% endif %}
     </nav>
     <div class="who">
       <span class="user-avatar" aria-hidden="true">{{ current_user.name[0]|upper }}</span>
       <span class="user-name">{{ current_user.name }}</span>
-      <span class="role-tag">{{ 'Admin' if current_user.role == 'admin' else 'Pengguna' }}</span>
-      <a class="logout-link" href="{{ url_for('logout') }}">Keluar</a>
+      <span class="role-tag">{{ {'super_admin': 'Super admin', 'admin': 'Tim IT', 'user': 'Karyawan'}.get(current_user.role, 'Karyawan') }}</span>
+      <form class="logout-form" method="POST" action="{{ url_for('logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="logout-link" type="submit">Keluar</button>
+      </form>
     </div>
   </header>
   <main class="container">

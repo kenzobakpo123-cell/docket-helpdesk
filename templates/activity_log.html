@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Aktivitas — Docket{% endblock %}
+{% block content %}
+  <section class="activity-hero">
+    <div>
+      <span class="eyebrow">PUSAT KONTROL SUPER ADMIN</span>
+      <h1>Jejak aktivitas</h1>
+      <p class="page-subtitle">Pantau siapa yang masuk dan perubahan penting yang terjadi di portal.</p>
+    </div>
+    <div class="activity-total">
+      <strong>{{ total_count }}</strong>
+      <span>aktivitas ditemukan</span>
+    </div>
+  </section>
+
+  <form class="activity-filters" method="GET" action="{{ url_for('activity_log') }}">
+    <div class="filter-field">
+      <label for="activity-action">Jenis aktivitas</label>
+      <select id="activity-action" name="action">
+        <option value="">Semua aktivitas</option>
+        {% for value, label in action_labels.items() %}
+        <option value="{{ value }}" {% if selected_action == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="activity-actor">Nama pengguna</label>
+      <input id="activity-actor" type="search" name="actor" maxlength="100" value="{{ actor }}" placeholder="Cari nama pengguna">
+    </div>
+    <div class="filter-actions">
+      <button class="filter-submit" type="submit">Terapkan filter</button>
+      <a class="filter-reset" href="{{ url_for('activity_log') }}">Reset</a>
+    </div>
+  </form>
+
+  {% if activities %}
+  <section class="activity-list" aria-label="Daftar aktivitas">
+    {% for item in activities %}
+    <article class="activity-item">
+      <span class="activity-marker activity-marker-{{ item.action }}" aria-hidden="true"></span>
+      <div class="activity-content">
+        <div class="activity-heading">
+          <span class="activity-type">{{ action_labels[item.action] }}</span>
+          <time datetime="{{ item.created_at.isoformat() }}">{{ item.created_at.strftime('%d %b %Y · %H:%M') }} UTC</time>
+        </div>
+        <p>{{ item.description }}</p>
+        <div class="activity-meta">
+          <span class="activity-avatar" aria-hidden="true">{{ item.actor_name[0]|upper }}</span>
+          <span><strong>{{ item.actor_name }}</strong>{% if item.actor_email %}<span class="activity-email">{{ item.actor_email }}</span>{% endif %}</span>
+          {% if item.target_type == 'ticket' and item.target_id %}
+          <a class="activity-target" href="{{ url_for('ticket_detail', ticket_id=item.target_id) }}">Laporan #{{ '%04d'|format(item.target_id) }} <span aria-hidden="true">↗</span></a>
+          {% elif item.target_type == 'user' and item.target_id %}
+          <span class="activity-target">Akun #{{ item.target_id }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+  <nav class="pagination activity-pagination" aria-label="Halaman aktivitas">
+    {% if page > 1 %}
+    <a href="{{ url_for('activity_log', action=selected_action, actor=actor, page=page - 1) }}">← Lebih baru</a>
+    {% else %}
+    <span class="pagination-disabled">← Lebih baru</span>
+    {% endif %}
+    <span class="pagination-current">Halaman <strong>{{ page }}</strong> dari <strong>{{ page_count }}</strong></span>
+    {% if page < page_count %}
+    <a href="{{ url_for('activity_log', action=selected_action, actor=actor, page=page + 1) }}">Lebih lama →</a>
+    {% else %}
+    <span class="pagination-disabled">Lebih lama →</span>
+    {% endif %}
+  </nav>
+  {% else %}
+  <section class="activity-empty">
+    <span aria-hidden="true">✦</span>
+    <h2>Belum ada aktivitas yang cocok</h2>
+    <p>Aktivitas login dan perubahan penting akan muncul di sini.</p>
+  </section>
+  {% endif %}
+  <p class="activity-privacy">Log ini tidak menyimpan kata sandi maupun isi tiket atau komentar. Waktu ditampilkan dalam UTC.</p>
+{% endblock %}
