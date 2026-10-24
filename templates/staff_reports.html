@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Laporan operasional — Docket{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div><span class="eyebrow">RINGKASAN TIM IT</span><h1>Laporan operasional</h1>
+      <p class="page-subtitle">Aktivitas 30 hari: {{ period_start.strftime('%d %b %Y') }} – {{ period_end.strftime('%d %b %Y') }} UTC.</p></div>
+  </div>
+  <section class="report-stats">
+    <article class="report-stat"><span>Tiket dibuat</span><strong>{{ total_created }}</strong><small>30 hari terakhir</small></article>
+    <article class="report-stat"><span>Rata-rata penyelesaian</span><strong>{{ average_resolution_hours if average_resolution_hours is not none else '—' }}{% if average_resolution_hours is not none %} jam{% endif %}</strong><small>Berdasarkan riwayat status</small></article>
+    <article class="report-stat"><span>Tiket melewati target</span><strong>{{ overdue_count }}</strong><small>Masih terbuka atau diproses</small></article>
+  </section>
+  <div class="report-columns">
+    <section class="report-card">
+      <h2>Tiket berdasarkan kategori</h2>
+      {% for category, count in created_by_category|dictsort %}
+      <div class="metric-row"><span>{{ category }}</span><strong>{{ count }}</strong></div>
+      {% else %}<p class="form-hint">Belum ada tiket pada periode ini.</p>{% endfor %}
+    </section>
+    <section class="report-card">
+      <h2>Status terkini tiket pada periode</h2>
+      {% for status, count in created_by_status|dictsort %}
+      <div class="metric-row"><span>{{ {'open': 'Terbuka', 'in_progress': 'Diproses', 'resolved': 'Selesai', 'closed': 'Ditutup'}.get(status, status) }}</span><strong>{{ count }}</strong></div>
+      {% else %}<p class="form-hint">Belum ada tiket pada periode ini.</p>{% endfor %}
+    </section>
+  </div>
+  <section class="report-card workload-card">
+    <h2>Beban tiket aktif per tim IT</h2>
+    {% for name, count in workload %}
+    <div class="metric-row"><span>{{ name }}</span><strong>{{ count }} tiket</strong></div>
+    {% else %}<p class="form-hint">Belum ada anggota tim IT aktif.</p>{% endfor %}
+  </section>
+{% endblock %}

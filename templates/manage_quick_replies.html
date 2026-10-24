@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Template jawaban — Docket{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div><span class="eyebrow">EFISIENSI TIM IT</span><h1>Template jawaban</h1>
+      <p class="page-subtitle">Buat jawaban yang dapat dipilih saat menanggapi tiket.</p></div>
+  </div>
+  <section class="settings-card">
+    <h2>Tambah template</h2>
+    <form method="POST" class="quick-reply-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="save">
+      <div class="field"><label for="title">Nama template</label><input id="title" name="title" maxlength="80" required></div>
+      <div class="field"><label for="content">Isi jawaban</label><textarea id="content" name="content" maxlength="1000" rows="3" required></textarea></div>
+      <button type="submit" class="btn">Simpan template</button>
+    </form>
+  </section>
+  <section class="quick-reply-list">
+    <h2>Template tersimpan</h2>
+    {% for reply in replies %}
+    <article class="quick-reply-card">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="action" value="update">
+        <input type="hidden" name="reply_id" value="{{ reply.id }}">
+        <div class="field"><label for="title-{{ reply.id }}">Nama template</label><input id="title-{{ reply.id }}" name="title" maxlength="80" value="{{ reply.title }}" required></div>
+        <div class="field"><label for="content-{{ reply.id }}">Isi jawaban</label><textarea id="content-{{ reply.id }}" name="content" maxlength="1000" rows="3" required>{{ reply.content }}</textarea></div>
+        <button type="submit" class="btn btn-secondary">Perbarui</button>
+      </form>
+      <form method="POST" class="quick-reply-delete">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="reply_id" value="{{ reply.id }}">
+        <button type="submit" class="text-link">Hapus template</button>
+      </form>
+    </article>
+    {% else %}<p class="empty-state">Belum ada template jawaban.</p>{% endfor %}
+  </section>
+{% endblock %}

@@ -27,6 +27,12 @@ Permintaan bantuan IT yang dikirim lewat chat atau lisan mudah terlewat dan suli
 - Riwayat aktivitas untuk super admin: login/logout, pendaftaran, perubahan akses akun, pembuatan laporan, komentar, status, dan penugasan.
 - Filter riwayat aktivitas berdasarkan jenis kejadian dan nama pengguna, dengan paginasi.
 - Notifikasi push per perangkat untuk laporan baru, komentar, perubahan tiket, dan persetujuan akun.
+- Riwayat perubahan status, penugasan, komentar, dan pembuatan tiket pada setiap tiket.
+- Lampiran privat berupa JPG/PNG/WebP hingga 5 MB, dengan akses unduh yang dibatasi sesuai hak akses tiket.
+- Laporan operasional tim IT: jumlah tiket 30 hari, kategori/status, rerata penyelesaian, beban tiket aktif, dan tiket yang melewati target.
+- Preferensi push per kategori notifikasi.
+- Template jawaban cepat yang dapat dikelola tim IT dan digunakan pada percakapan tiket.
+- Pengingat push satu jam sebelum target dan sekali setelah target SLA terlewati.
 
 ## Target waktu pada demo
 
@@ -65,7 +71,7 @@ Pendaftaran publik selalu membuat akun `pending` dengan peran karyawan. Akun bel
 
 Skrip promosi awal hanya berjalan jika belum ada super admin. Jangan menjalankannya dengan database lokal jika yang ingin diubah adalah akun di hosting.
 
-Saat aplikasi mulai, kolom status persetujuan ditambahkan ke database lama bila belum ada. Akun lama dipertahankan aktif; hanya pendaftaran baru yang menunggu persetujuan.
+Saat aplikasi mulai, kolom status persetujuan, preferensi notifikasi, dan timestamp pengingat SLA ditambahkan ke database lama bila belum ada. Akun lama dipertahankan aktif; hanya pendaftaran baru yang menunggu persetujuan. Tabel riwayat tiket, lampiran, dan template jawaban dibuat otomatis.
 
 ## Notifikasi push
 
@@ -88,6 +94,18 @@ Untuk mengaktifkan pengiriman:
 4. Reload aplikasi. Setiap pengguna mengaktifkan notifikasi di masing-masing browser/perangkat. Izin browser harus diberikan.
 
 Laptop dan Android memerlukan browser yang mendukung Web Push. Untuk iPhone/iPad, gunakan iOS/iPadOS 16.4 atau lebih baru, tambahkan situs ke Layar Utama, buka dari ikon tersebut, lalu aktifkan notifikasi. Situs harus memakai HTTPS. Jika kunci server belum diatur, tombol aktivasi tidak ditampilkan dan push belum dikirim.
+
+## Lampiran privat dan pengingat SLA
+
+Lampiran tiket dibatasi ke JPG, JPEG, PNG, dan WebP dengan ukuran maksimal 5 MB. File disimpan di `instance/uploads` (bukan direktori static) dan hanya dapat diunduh oleh pemilik tiket atau tim IT. Pastikan direktori `instance/uploads` ikut dicadangkan dan tidak dipindahkan ke lokasi publik.
+
+Pengingat SLA memerlukan Scheduled Task yang berjalan setiap jam, konfigurasi VAPID, dan aplikasi serta database deployment yang sama. Pada PythonAnywhere, buat task hourly dengan perintah berikut dan sesuaikan nama virtualenv serta lokasi proyek:
+
+```bash
+/home/kafa/.virtualenvs/docket-env/bin/python /home/kafa/docket-helpdesk/send_sla_reminders.py
+```
+
+Script memberi pengingat satu jam sebelum target kepada pembuat dan penanggung jawab tiket, serta pemberitahuan satu kali saat tiket aktif melewati target. Preferensi push pengguna tetap dihormati. Target dalam demo dihitung berdasarkan jam kalender UTC, bukan jam kerja; reminder membutuhkan konfigurasi push dan Scheduled Task aktif.
 
 ## Penjelasan singkat untuk portofolio
 

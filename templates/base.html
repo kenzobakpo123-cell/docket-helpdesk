@@ -13,10 +13,15 @@
       <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Tiket IT</a>
       <a href="{{ url_for('new_ticket') }}" class="{% if request.endpoint == 'new_ticket' %}active{% endif %}">Buat tiket</a>
       <a href="{{ url_for('help_center') }}" class="{% if request.endpoint == 'help_center' %}active{% endif %}">Panduan IT</a>
+      {% if current_user.role in ['admin', 'super_admin'] %}
+      <a href="{{ url_for('staff_reports') }}" class="{% if request.endpoint == 'staff_reports' %}active{% endif %}">Laporan</a>
+      <a href="{{ url_for('manage_quick_replies') }}" class="{% if request.endpoint == 'manage_quick_replies' %}active{% endif %}">Template jawaban</a>
+      {% endif %}
       {% if current_user.role == 'super_admin' %}
       <a href="{{ url_for('manage_users') }}" class="{% if request.endpoint == 'manage_users' %}active{% endif %}">Kelola akun{% if pending_user_count %}<span class="nav-count">{{ pending_user_count }}</span>{% endif %}</a>
       <a href="{{ url_for('activity_log') }}" class="{% if request.endpoint == 'activity_log' %}active{% endif %}">Aktivitas</a>
       {% endif %}
+      <a href="{{ url_for('notification_settings') }}" class="{% if request.endpoint == 'notification_settings' %}active{% endif %}">Notifikasi</a>
     </nav>
     <div class="who">
       <span class="user-avatar" aria-hidden="true">{{ current_user.name[0]|upper }}</span>

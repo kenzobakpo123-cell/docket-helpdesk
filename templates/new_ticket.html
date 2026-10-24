@@ -10,7 +10,7 @@
     <a href="{{ url_for('dashboard') }}" class="text-link">← Kembali</a>
   </div>
 
-  <form method="POST" class="ticket-form">
+  <form method="POST" class="ticket-form" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="form-section">
     <div class="field">
@@ -40,6 +40,12 @@
     <div class="field">
       <label for="description">Ceritakan kendalanya</label>
       <textarea id="description" name="description" rows="6" required placeholder="Sertakan perangkat atau aplikasi yang terdampak, kapan mulai terjadi, pesan kesalahan, dan langkah yang sudah dicoba. Jangan tulis kata sandi."></textarea>
+    </div>
+
+    <div class="field">
+      <label for="attachment">Lampiran tangkapan layar <span class="optional-label">opsional</span></label>
+      <input type="file" id="attachment" name="attachment" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+      <span class="field-help">JPG, PNG, atau WebP; maksimal 5 MB. Hindari mengunggah informasi rahasia.</span>
     </div>
 
     <div class="form-actions">

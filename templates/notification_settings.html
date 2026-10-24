@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Preferensi notifikasi — Docket{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div><span class="eyebrow">PREFERENSI AKUN</span><h1>Notifikasi push</h1>
+      <p class="page-subtitle">Pilih jenis pemberitahuan yang ingin diterima pada perangkat ini dan perangkat lain yang terhubung.</p></div>
+  </div>
+  <form method="POST" class="settings-card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% for field, label in preference_labels.items() %}
+    <label class="preference-row" for="{{ field }}">
+      <span><strong>{{ label }}</strong><small>Kelola pemberitahuan kategori ini.</small></span>
+      <input type="checkbox" id="{{ field }}" name="{{ field }}" {% if current_user|attr(field) %}checked{% endif %}>
+    </label>
+    {% endfor %}
+    <div class="form-actions"><span class="form-hint">Push perlu diaktifkan pada browser melalui tombol di bagian atas.</span><button class="btn" type="submit">Simpan preferensi</button></div>
+  </form>
+{% endblock %}

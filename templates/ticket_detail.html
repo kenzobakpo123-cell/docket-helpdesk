@@ -25,6 +25,14 @@
       <span class="detail-meta-item"><span>Penanggung jawab</span><strong>{{ ticket.assignee.name if ticket.assignee else 'Belum ada' }}</strong></span>
       <span class="detail-meta-item"><span>Tanggal dibuat</span><strong>{{ ticket.created_at.strftime('%d %b %Y, %H:%M') }}</strong></span>
     </div>
+    {% if attachments %}
+    <div class="attachment-list">
+      <strong>Lampiran</strong>
+      {% for attachment in attachments %}
+      <a href="{{ url_for('download_ticket_attachment', attachment_id=attachment.id) }}">{{ attachment.original_name }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 
   {% if current_user.role in ['admin', 'super_admin'] %}
@@ -77,13 +85,49 @@
     <p class="no-comments">Belum ada komentar. Mulai percakapan dengan menambahkan komentar di bawah.</p>
     {% endfor %}
 
-    <form method="POST" class="comment-form">
+    {% if history %}
+    <section class="history-panel" aria-labelledby="history-title">
+      <div class="section-heading">
+        <div><span class="eyebrow">JEJAK TIKET</span><h2 id="history-title">Riwayat perubahan</h2></div>
+      </div>
+      <ol class="history-list">
+        {% for event in history %}
+        <li class="history-item">
+          <span class="history-dot" aria-hidden="true"></span>
+          <div><strong>{{ event.description }}</strong><span>{{ event.actor_name }} · {{ event.created_at.strftime('%d %b %Y, %H:%M') }}</span></div>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+    {% endif %}
+
+    <form method="POST" class="comment-form" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {% if quick_replies %}
+      <div class="field quick-reply-field">
+        <label for="quick-reply">Gunakan template jawaban</label>
+        <div class="quick-reply-control">
+          <select id="quick-reply">
+            <option value="">Pilih jawaban cepat</option>
+            {% for reply in quick_replies %}
+            <option value="{{ reply.content }}">{{ reply.title }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-secondary" id="apply-quick-reply">Gunakan</button>
+        </div>
+      </div>
+      {% endif %}
       <div class="field">
         <label for="comment_content">Tambah komentar</label>
-        <textarea id="comment_content" name="comment_content" rows="3" required placeholder="Tulis update atau pertanyaan"></textarea>
+        <textarea id="comment_content" name="comment_content" rows="3" placeholder="Tulis update atau pertanyaan"></textarea>
+      </div>
+      <div class="field">
+        <label for="comment-attachment">Lampiran <span class="optional-label">opsional</span></label>
+        <input type="file" id="comment-attachment" name="attachment" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+        <span class="field-help">JPG, PNG, atau WebP; maksimal 5 MB.</span>
       </div>
       <button type="submit" class="btn">Kirim komentar <span aria-hidden="true">→</span></button>
     </form>
   </div>
+  {% if quick_replies %}<script src="{{ url_for('static', filename='js/quick-replies.js') }}" defer></script>{% endif %}
 {% endblock %}
